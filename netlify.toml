@@ -1,0 +1,9 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[redirects]
+  // Redirects can be added here
+
+[headers]
+  // Headers can be configured here
