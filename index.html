@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STR Guestbook</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      color: #2c3e50;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .form-card, .entries-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-card h2, .entries-card h2 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+      color: #555;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button[type="submit"] {
+      background: #3498db;
+      color: #fff;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button[type="submit"]:hover {
+      background: #2980b9;
+    }
+
+    .entry {
+      border-bottom: 1px solid #eee;
+      padding: 1rem 0;
+    }
+
+    .entry:last-child {
+      border-bottom: none;
+    }
+
+    .entry-name {
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .entry-date {
+      font-size: 0.85rem;
+      color: #999;
+      margin-left: 0.5rem;
+    }
+
+    .entry-message {
+      margin-top: 0.4rem;
+      line-height: 1.5;
+    }
+
+    .no-entries {
+      color: #aaa;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>&#x1F3E0; STR Guestbook</h1>
+    <p>Welcome! We'd love to hear about your stay.</p>
+  </header>
+
+  <div class="container">
+    <div class="form-card">
+      <h2>Leave a Message</h2>
+      <form id="guestForm">
+        <div class="form-group">
+          <label for="name">Your Name</label>
+          <input type="text" id="name" placeholder="e.g. Jane Smith" required />
+        </div>
+        <div class="form-group">
+          <label for="message">Your Message</label>
+          <textarea id="message" placeholder="Share your experience..." required></textarea>
+        </div>
+        <button type="submit">Sign Guestbook</button>
+      </form>
+    </div>
+
+    <div class="entries-card">
+      <h2>&#x1F4AC; Guest Messages</h2>
+      <div id="entries">
+        <p class="no-entries">No entries yet. Be the first to sign!</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('guestForm');
+    const entriesContainer = document.getElementById('entries');
+
+    function loadEntries() {
+      var stored = localStorage.getItem('guestbookEntries');
+      var entries = [];
+      try { entries = stored ? JSON.parse(stored) : []; } catch (e) { entries = []; }
+      renderEntries(entries);
+    }
+
+    function saveEntry(name, message) {
+      var stored = localStorage.getItem('guestbookEntries');
+      var entries = [];
+      try { entries = stored ? JSON.parse(stored) : []; } catch (e) { entries = []; }
+      entries.unshift({
+        name,
+        message,
+        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      });
+      localStorage.setItem('guestbookEntries', JSON.stringify(entries));
+      renderEntries(entries);
+    }
+
+    function renderEntries(entries) {
+      if (entries.length === 0) {
+        entriesContainer.innerHTML = '<p class="no-entries">No entries yet. Be the first to sign!</p>';
+        return;
+      }
+      entriesContainer.innerHTML = entries.map(function (e) {
+        return '<div class="entry">'
+          + '<span class="entry-name">' + escapeHtml(e.name) + '</span>'
+          + '<span class="entry-date">' + escapeHtml(e.date) + '</span>'
+          + '<p class="entry-message">' + escapeHtml(e.message) + '</p>'
+          + '</div>';
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var name = document.getElementById('name').value.trim();
+      var message = document.getElementById('message').value.trim();
+      if (name && message) {
+        saveEntry(name, message);
+        form.reset();
+      }
+    });
+
+    loadEntries();
+  </script>
+</body>
+</html>
