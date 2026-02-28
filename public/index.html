@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STR Guestbook</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      color: #2c5364;
+    }
+
+    header p {
+      color: #666;
+      margin-top: 0.4rem;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 1.3rem;
+      color: #2c5364;
+      margin-bottom: 1rem;
+    }
+
+    form label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+
+    form input, form textarea {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      font-family: inherit;
+    }
+
+    form textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    form button {
+      background: #2c5364;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    form button:hover {
+      background: #1a3344;
+    }
+
+    #error-msg {
+      color: #c0392b;
+      font-size: 0.9rem;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    #entries-list {
+      list-style: none;
+    }
+
+    #entries-list li {
+      border-bottom: 1px solid #eee;
+      padding: 1rem 0;
+    }
+
+    #entries-list li:last-child {
+      border-bottom: none;
+    }
+
+    .entry-name {
+      font-weight: 700;
+      color: #2c5364;
+    }
+
+    .entry-date {
+      font-size: 0.8rem;
+      color: #999;
+      margin-left: 0.5rem;
+    }
+
+    .entry-message {
+      margin-top: 0.4rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #loading {
+      color: #999;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    #no-entries {
+      color: #999;
+      text-align: center;
+      padding: 1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📖 STR Guestbook</h1>
+    <p>Leave a message for us!</p>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Sign the Guestbook</h2>
+      <form id="entry-form">
+        <label for="name">Your Name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Jane Smith" maxlength="100" required />
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" placeholder="Write your message here…" maxlength="2000" required></textarea>
+
+        <div id="error-msg"></div>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Entries</h2>
+      <p id="loading">Loading entries…</p>
+      <p id="no-entries">No entries yet. Be the first to sign!</p>
+      <ul id="entries-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('entry-form');
+    const entriesList = document.getElementById('entries-list');
+    const loadingEl = document.getElementById('loading');
+    const noEntriesEl = document.getElementById('no-entries');
+    const errorMsg = document.getElementById('error-msg');
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + (dateStr.endsWith('Z') ? '' : 'Z'));
+      return d.toLocaleString();
+    }
+
+    function renderEntries(entries) {
+      loadingEl.style.display = 'none';
+      entriesList.innerHTML = '';
+      if (entries.length === 0) {
+        noEntriesEl.style.display = 'block';
+        return;
+      }
+      noEntriesEl.style.display = 'none';
+      entries.forEach(entry => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span class="entry-name">${escapeHtml(entry.name)}</span>
+          <span class="entry-date">${escapeHtml(formatDate(entry.created_at))}</span>
+          <p class="entry-message">${escapeHtml(entry.message)}</p>
+        `;
+        entriesList.appendChild(li);
+      });
+    }
+
+    async function loadEntries() {
+      loadingEl.style.display = 'block';
+      noEntriesEl.style.display = 'none';
+      try {
+        const res = await fetch('/entries');
+        const entries = await res.json();
+        renderEntries(entries);
+      } catch (e) {
+        loadingEl.textContent = 'Failed to load entries.';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+      const name = form.name.value.trim();
+      const message = form.message.value.trim();
+
+      try {
+        const res = await fetch('/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, message })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          errorMsg.textContent = data.error || 'Failed to submit entry.';
+          errorMsg.style.display = 'block';
+          return;
+        }
+        form.reset();
+        loadEntries();
+      } catch (e) {
+        errorMsg.textContent = 'Network error. Please try again.';
+        errorMsg.style.display = 'block';
+      }
+    });
+
+    loadEntries();
+  </script>
+</body>
+</html>
